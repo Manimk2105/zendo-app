@@ -25,11 +25,11 @@ export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xl"
       >
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="absolute top-8 right-8 p-3 rounded-full hover:bg-slate-100 transition-colors"
         >
           <X className="w-6 h-6 text-slate-500" />
         </button>
@@ -45,21 +45,21 @@ export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
             Current Focus
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white leading-tight mb-8">
+          <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight mb-8">
             {task.title}
           </h1>
 
           <div className="flex items-center justify-center gap-8 mb-12">
             <div className="flex flex-col items-center gap-2">
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-elegant">
+              <div className="p-4 rounded-2xl bg-white shadow-elegant">
                 {getEnergyIcon()}
               </div>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Energy Need</span>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-elegant flex items-center gap-2">
+              <div className="p-4 rounded-2xl bg-white shadow-elegant flex items-center gap-2">
                 <Clock className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-black text-slate-900 dark:text-white">{task.estimatedMinutes}</span>
+                <span className="text-2xl font-black text-slate-900">{task.estimatedMinutes}</span>
               </div>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Minutes Est.</span>
             </div>
