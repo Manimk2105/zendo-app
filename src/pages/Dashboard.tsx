@@ -71,20 +71,20 @@ export function Dashboard() {
   const focusTaskObj = tasks.find(t => t.id === focusTaskId) || null;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50/50">
       <header className="sticky top-0 z-40 w-full glass border-b">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shadow-lg">
               <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">
+            <span className="text-xl font-black tracking-tighter text-slate-900">
               ZEN<span className="text-primary">DO</span>
             </span>
           </div>
           
           <div className="flex items-center gap-4 text-slate-500">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border text-xs font-bold uppercase tracking-tighter">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border text-xs font-bold uppercase tracking-tighter">
               <Trophy className="w-3.5 h-3.5 text-yellow-500" />
               {stats.completed} Daily Wins
             </div>
@@ -97,7 +97,7 @@ export function Dashboard() {
           {/* Left Column: Stats & Add */}
           <div className="lg:col-span-5 space-y-8">
             <div className="space-y-2">
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">
                 Focus on the <span className="text-gradient">Next Win</span>
               </h2>
               <p className="text-slate-500 font-medium">
@@ -110,12 +110,12 @@ export function Dashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl glass border flex flex-col gap-1 shadow-elegant">
                 <BarChart3 className="w-5 h-5 text-primary mb-2" />
-                <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.minutesSaved}</span>
+                <span className="text-2xl font-black text-slate-900">{stats.minutesSaved}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase">Minutes Saved</span>
               </div>
               <div className="p-4 rounded-2xl glass border flex flex-col gap-1 shadow-elegant">
                 <Layout className="w-5 h-5 text-accent mb-2" />
-                <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.total}</span>
+                <span className="text-2xl font-black text-slate-900">{stats.total}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase">Tasks Logged</span>
               </div>
             </div>
@@ -124,15 +124,15 @@ export function Dashboard() {
           {/* Right Column: List */}
           <div className="lg:col-span-7 space-y-6">
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
-              <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full sm:w-auto">
+              <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
                 {(['all', 'active', 'completed'] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
                     className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-tighter transition-all ${
                       filter === f
-                        ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white'
-                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        ? 'bg-white shadow-sm text-slate-900'
+                        : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
                     {f}
@@ -147,7 +147,7 @@ export function Dashboard() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search tasks..."
-                  className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full pl-9 pr-4 py-2 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -167,11 +167,11 @@ export function Dashboard() {
 
               {filteredTasks.length === 0 && (
                 <div className="py-20 text-center space-y-4 animate-fade-in">
-                  <div className="inline-flex p-4 rounded-full bg-slate-50 dark:bg-slate-900">
+                  <div className="inline-flex p-4 rounded-full bg-slate-50">
                     <ListFilter className="w-8 h-8 text-slate-300" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-lg font-bold text-slate-900 dark:text-white">Nothing to show</p>
+                    <p className="text-lg font-bold text-slate-900">Nothing to show</p>
                     <p className="text-sm text-slate-400">Try changing your filter or add a new task.</p>
                   </div>
                 </div>
