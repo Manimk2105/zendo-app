@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
-import { type Task, type EnergyLevel } from '../types/todo';
+import { type Task, type EnergyLevel, type FocusSession } from '../types/todo';
 import { storage } from '../services/storage';
 import { TaskForm } from '../components/TaskForm';
 import { TaskCard } from '../components/TaskCard';
 import { FocusOverlay } from '../components/FocusOverlay';
-import { Layout, CheckCircle2, Trophy, BarChart3, ListFilter, Search } from 'lucide-react';
+import { Layout, CheckCircle2, Trophy, BarChart3, ListFilter, Search, Calendar, Award, Trash2 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 
 export function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [history, setHistory] = useState<FocusSession[]>([]);
   const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,6 +17,7 @@ export function Dashboard() {
   // Initial load
   useEffect(() => {
     setTasks(storage.getTasks());
+    setHistory(storage.getHistory());
   }, []);
 
   // Save on change
@@ -40,8 +42,38 @@ export function Dashboard() {
     setTasks(tasks.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
   };
 
+  const completeTask = (id: string, actualMinutes?: number) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    // Toggle completed state
+    const updatedTasks = tasks.map(t => t.id === id ? { ...t, isCompleted: true } : t);
+    setTasks(updatedTasks);
+
+    // Create a new focus session log
+    const minutes = actualMinutes !== undefined ? actualMinutes : task.estimatedMinutes;
+    const newSession: FocusSession = {
+      id: crypto.randomUUID(),
+      taskId: task.id,
+      taskTitle: task.title,
+      energyLevel: task.energyLevel,
+      minutesFocused: minutes,
+      completedAt: Date.now()
+    };
+    const updatedHistory = [newSession, ...history];
+    setHistory(updatedHistory);
+    storage.saveHistory(updatedHistory);
+  };
+
   const deleteTask = (id: string) => {
     setTasks(tasks.filter(t => t.id !== id));
+  };
+
+  const clearHistory = () => {
+    if (window.confirm("Are you sure you want to clear your mindfulness focus history?")) {
+      setHistory([]);
+      storage.saveHistory([]);
+    }
   };
 
   const focusTask = (id: string) => {
@@ -64,9 +96,36 @@ export function Dashboard() {
   const stats = useMemo(() => {
     const completed = tasks.filter(t => t.isCompleted).length;
     const total = tasks.length;
-    const minutesSaved = tasks.filter(t => t.isCompleted).reduce((acc, t) => acc + t.estimatedMinutes, 0);
-    return { completed, total, minutesSaved };
-  }, [tasks]);
+    const totalMinutesFocused = history.reduce((acc, s) => acc + s.minutesFocused, 0);
+    return { completed, total, totalMinutesFocused };
+  }, [tasks, history]);
+
+  // Calculate Streak of consecutive days with at least one focus session
+  const streak = useMemo(() => {
+    if (history.length === 0) return 0;
+    
+    const dates = Array.from(new Set(history.map(s => new Date(s.completedAt).toDateString())));
+    const todayStr = new Date().toDateString();
+    const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
+    
+    if (!dates.includes(todayStr) && !dates.includes(yesterdayStr)) {
+      return 0;
+    }
+    
+    let currentStreak = 0;
+    const checkDate = new Date();
+    
+    while (true) {
+      const dateStr = checkDate.toDateString();
+      if (dates.includes(dateStr)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return currentStreak;
+  }, [history]);
 
   const focusTaskObj = tasks.find(t => t.id === focusTaskId) || null;
 
@@ -84,9 +143,9 @@ export function Dashboard() {
           </div>
           
           <div className="flex items-center gap-4 text-slate-500">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border text-xs font-bold uppercase tracking-tighter">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border text-xs font-bold uppercase tracking-tighter">
               <Trophy className="w-3.5 h-3.5 text-yellow-500" />
-              {stats.completed} Daily Wins
+              {streak} Day Zen Streak
             </div>
           </div>
         </div>
@@ -100,8 +159,8 @@ export function Dashboard() {
               <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 Focus on the <span className="text-gradient">Next Win</span>
               </h2>
-              <p className="text-slate-500 font-medium">
-                ZenDo helps you manage energy, not just time.
+              <p className="text-slate-500 font-medium text-sm">
+                ZenDo helps you manage energy, flow through tasks, and track mindfulness with ambient sounds.
               </p>
             </div>
 
@@ -110,13 +169,65 @@ export function Dashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl glass border flex flex-col gap-1 shadow-elegant">
                 <BarChart3 className="w-5 h-5 text-primary mb-2" />
-                <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.minutesSaved}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase">Minutes Saved</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.totalMinutesFocused}</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">Focused Mins</span>
               </div>
               <div className="p-4 rounded-2xl glass border flex flex-col gap-1 shadow-elegant">
                 <Layout className="w-5 h-5 text-accent mb-2" />
                 <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.total}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase">Tasks Logged</span>
+              </div>
+            </div>
+
+            {/* Unique Feature: Mindful Focus History Log */}
+            <div className="p-6 rounded-2xl glass border shadow-elegant space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    Mindful History
+                  </h3>
+                </div>
+                {history.length > 0 && (
+                  <button
+                    onClick={clearHistory}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                    title="Clear history"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {history.length === 0 ? (
+                  <div className="text-center py-6 space-y-2">
+                    <Award className="w-8 h-8 text-slate-300 mx-auto" />
+                    <p className="text-xs font-bold text-slate-400">No sessions recorded yet.</p>
+                    <p className="text-[11px] text-slate-400">Complete a focus session with the timer to log history!</p>
+                  </div>
+                ) : (
+                  history.map((session) => (
+                    <div
+                      key={session.id}
+                      className="p-3 rounded-xl bg-white/55 dark:bg-slate-900/55 border text-xs flex items-center justify-between gap-3 shadow-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {session.taskTitle}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {new Date(session.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {session.energyLevel} energy
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <span className="inline-block px-2.5 py-1 rounded-full bg-primary/10 text-primary font-extrabold text-[10px]">
+                          +{session.minutesFocused}m
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -184,7 +295,7 @@ export function Dashboard() {
       <FocusOverlay
         task={focusTaskObj}
         onClose={() => setFocusTaskId(null)}
-        onComplete={toggleTask}
+        onComplete={completeTask}
       />
     </div>
   );

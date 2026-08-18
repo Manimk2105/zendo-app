@@ -10,3 +10,12 @@ export interface Task {
   isFocused: boolean;
   createdAt: number;
 }
+
+export interface FocusSession {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  energyLevel: EnergyLevel;
+  minutesFocused: number;
+  completedAt: number;
+}
