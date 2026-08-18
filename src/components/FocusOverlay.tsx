@@ -1,22 +1,87 @@
+import { useState, useEffect, useRef } from 'react';
 import { type Task } from '../types/todo';
-import { X, Target, CheckCircle2, Flame, Zap, Coffee, Clock } from 'lucide-react';
+import { X, Target, CheckCircle2, Flame, Zap, Coffee, Clock, Play, Pause, RotateCcw, Volume2, Wind } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { soundGenerator } from '../services/soundGenerator';
 
 interface FocusOverlayProps {
   task: Task | null;
   onClose: () => void;
-  onComplete: (id: string) => void;
+  onComplete: (id: string, actualMinutes?: number) => void;
 }
 
 export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
   if (!task) return null;
 
+  const [timeLeft, setTimeLeft] = useState(task.estimatedMinutes * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [activeSound, setActiveSound] = useState<'none' | 'rain' | 'breeze'>('none');
+  const timerRef = useRef<any>(null);
+
+  // Stop sounds on unmount
+  useEffect(() => {
+    return () => {
+      soundGenerator.stopAll();
+    };
+  }, []);
+
+  // Timer countdown
+  useEffect(() => {
+    if (isRunning) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            // Timer complete! Play Zen Bell and finish
+            setIsRunning(false);
+            soundGenerator.playBell();
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRunning]);
+
+  // Handle ambient sound switches
+  const handleSoundChange = (sound: 'none' | 'rain' | 'breeze') => {
+    setActiveSound(sound);
+    soundGenerator.stopAll();
+    
+    if (sound === 'rain') {
+      soundGenerator.playRain();
+    } else if (sound === 'breeze') {
+      soundGenerator.playBreeze();
+    }
+  };
+
   const getEnergyIcon = () => {
     switch (task.energyLevel) {
-      case 'high': return <Flame className="w-8 h-8 text-orange-500" />;
-      case 'medium': return <Zap className="w-8 h-8 text-yellow-500" />;
-      case 'low': return <Coffee className="w-8 h-8 text-blue-500" />;
+      case 'high': return <Flame className="w-6 h-6 text-orange-500" />;
+      case 'medium': return <Zap className="w-6 h-6 text-yellow-500" />;
+      case 'low': return <Coffee className="w-6 h-6 text-blue-500" />;
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = (timeLeft / (task.estimatedMinutes * 60)) * 100;
+
+  const handleFinish = () => {
+    const minutesFocused = Math.max(1, Math.round((task.estimatedMinutes * 60 - timeLeft) / 60));
+    soundGenerator.playBell();
+    onComplete(task.id, minutesFocused);
+    onClose();
   };
 
   return (
@@ -25,59 +90,157 @@ export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-2xl dark:bg-slate-950/95"
       >
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="absolute top-6 right-6 p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors z-50"
         >
           <X className="w-6 h-6 text-slate-500" />
         </button>
 
         <motion.div
-          initial={{ scale: 0.9, y: 20 }}
+          initial={{ scale: 0.95, y: 15 }}
           animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 20 }}
-          className="max-w-2xl w-full p-12 text-center"
+          exit={{ scale: 0.95, y: 15 }}
+          className="max-w-xl w-full px-6 py-8 text-center space-y-8 flex flex-col items-center justify-center"
         >
-          <div className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full bg-primary/10 text-primary font-bold text-sm uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary font-bold text-xs uppercase tracking-widest">
             <Target className="w-4 h-4 animate-pulse" />
-            Current Focus
+            Mindful Focus Session
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white leading-tight mb-8">
-            {task.title}
-          </h1>
-
-          <div className="flex items-center justify-center gap-8 mb-12">
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-elegant">
+          <div className="space-y-2 max-w-md">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight">
+              {task.title}
+            </h1>
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+              <span className="flex items-center gap-1">
                 {getEnergyIcon()}
-              </div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Energy Need</span>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-elegant flex items-center gap-2">
-                <Clock className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-black text-slate-900 dark:text-white">{task.estimatedMinutes}</span>
-              </div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Minutes Est.</span>
+                {task.energyLevel.charAt(0).toUpperCase() + task.energyLevel.slice(1)} Energy
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {task.estimatedMinutes} mins est.
+              </span>
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              onComplete(task.id);
-              onClose();
-            }}
-            className="group flex items-center gap-3 px-10 py-5 rounded-2xl gradient-primary text-white text-xl font-bold shadow-glow hover:scale-105 active:scale-95 transition-all"
-          >
-            <CheckCircle2 className="w-6 h-6" />
-            Finish Task
-          </button>
+          {/* Interactive Circular Timer Visualizer */}
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            {/* Background Circle */}
+            <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="44"
+                className="stroke-slate-100 dark:stroke-slate-800"
+                strokeWidth="6"
+                fill="transparent"
+              />
+              <motion.circle
+                cx="50"
+                cy="50"
+                r="44"
+                className="stroke-primary"
+                strokeWidth="6"
+                fill="transparent"
+                strokeDasharray={2 * Math.PI * 44}
+                animate={{ strokeDashoffset: (2 * Math.PI * 44) * (1 - progress / 100) }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                strokeLinecap="round"
+              />
+            </svg>
+            
+            <div className="text-center z-10 space-y-1">
+              <div className="text-5xl font-black tracking-tight font-mono text-slate-900 dark:text-white">
+                {formatTime(timeLeft)}
+              </div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                {isRunning ? 'Flow State Active' : 'Zen Paused'}
+              </div>
+            </div>
+          </div>
+
+          {/* Timer Controls */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                setTimeLeft(task.estimatedMinutes * 60);
+                setIsRunning(false);
+              }}
+              className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:scale-105 active:scale-95 shadow-md"
+              title="Reset Timer"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className="px-8 py-4 rounded-2xl gradient-primary text-white font-black text-lg shadow-glow hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            >
+              {isRunning ? (
+                <>
+                  <Pause className="w-5 h-5 fill-white" /> Pause Flow
+                </>
+              ) : (
+                <>
+                  <Play className="w-5 h-5 fill-white" /> Enter Flow
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleFinish}
+              className="p-4 rounded-2xl bg-green-500 hover:bg-green-600 text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+              title="Finish Task Directly"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Ambient Sounds Picker */}
+          <div className="bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-2xl border w-full max-w-sm space-y-2">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              Zen Ambient Sounds
+            </div>
+            <div className="flex items-center gap-2 justify-center">
+              <button
+                onClick={() => handleSoundChange('none')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeSound === 'none'
+                    ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                Off
+              </button>
+              <button
+                onClick={() => handleSoundChange('rain')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  activeSound === 'rain'
+                    ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <Volume2 className="w-3.5 h-3.5" /> Rain
+              </button>
+              <button
+                onClick={() => handleSoundChange('breeze')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  activeSound === 'breeze'
+                    ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <Wind className="w-3.5 h-3.5" /> Breeze
+              </button>
+            </div>
+          </div>
           
-          <p className="mt-8 text-slate-400 font-medium">
-            You've got this. Take a deep breath and start.
+          <p className="text-xs font-medium text-slate-400">
+            Let the sound guide your breathing. Inhale calm, exhale distractions.
           </p>
         </motion.div>
       </motion.div>
