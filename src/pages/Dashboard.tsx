@@ -33,6 +33,7 @@ export function Dashboard() {
       estimatedMinutes: data.estimatedMinutes,
       isCompleted: false,
       isFocused: false,
+      isPaused: false,
       createdAt: Date.now(),
     };
     setTasks([newTask, ...tasks]);
@@ -42,12 +43,16 @@ export function Dashboard() {
     setTasks(tasks.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
   };
 
+  const togglePauseTask = (id: string) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, isPaused: !t.isPaused } : t));
+  };
+
   const completeTask = (id: string, actualMinutes?: number) => {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
-    // Toggle completed state
-    const updatedTasks = tasks.map(t => t.id === id ? { ...t, isCompleted: true } : t);
+    // Toggle completed state and clear paused state
+    const updatedTasks = tasks.map(t => t.id === id ? { ...t, isCompleted: true, isPaused: false } : t);
     setTasks(updatedTasks);
 
     // Create a new focus session log
@@ -191,7 +196,7 @@ export function Dashboard() {
                 {history.length > 0 && (
                   <button
                     onClick={clearHistory}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-950 transition-colors"
                     title="Clear history"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -272,6 +277,7 @@ export function Dashboard() {
                     onToggle={toggleTask}
                     onDelete={deleteTask}
                     onFocus={focusTask}
+                    onPauseToggle={togglePauseTask}
                   />
                 ))}
               </AnimatePresence>
