@@ -8,6 +8,7 @@ export interface Task {
   estimatedMinutes: number;
   isCompleted: boolean;
   isFocused: boolean;
+  isPaused?: boolean;
   createdAt: number;
 }
 
@@ -19,3 +20,4 @@ export interface FocusSession {
   minutesFocused: number;
   completedAt: number;
 }
+
