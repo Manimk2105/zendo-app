@@ -11,12 +11,19 @@ interface FocusOverlayProps {
 }
 
 export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
-  if (!task) return null;
-
-  const [timeLeft, setTimeLeft] = useState(task.estimatedMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [activeSound, setActiveSound] = useState<'none' | 'rain' | 'breeze'>('none');
   const timerRef = useRef<any>(null);
+
+  // Sync timeLeft and status when task changes
+  useEffect(() => {
+    if (task) {
+      setTimeLeft(task.estimatedMinutes * 60);
+      setIsRunning(false);
+      setActiveSound('none');
+    }
+  }, [task]);
 
   // Stop sounds on unmount
   useEffect(() => {
@@ -27,7 +34,7 @@ export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
 
   // Timer countdown
   useEffect(() => {
-    if (isRunning) {
+    if (isRunning && task) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -47,7 +54,7 @@ export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning]);
+  }, [isRunning, task]);
 
   // Handle ambient sound switches
   const handleSoundChange = (sound: 'none' | 'rain' | 'breeze') => {
@@ -60,6 +67,8 @@ export function FocusOverlay({ task, onClose, onComplete }: FocusOverlayProps) {
       soundGenerator.playBreeze();
     }
   };
+
+  if (!task) return null;
 
   const getEnergyIcon = () => {
     switch (task.energyLevel) {
